@@ -6,26 +6,33 @@ pygame.init()
 screen = pygame.display.set_mode((1920,1080))
 running = True
 
-obstacle_x,obstacle_y = 1000,0
-
+obstacle_movement = []
 obstacles = []
-for _ in range(6):
-  obstacle = pygame.Rect(random.randrange(0,1920),0,50,50)
-  obstacles.append(obstacle)
+
 y,x = 700,800
 width,height = 50,50
+
 projectiles = []
 end_coords = []
 end_projectile_y = y
+
+
+for _ in range(6):
+  obstacle = pygame.Rect(random.randrange(0,1920),0,50,50)
+  obstacles.append(obstacle)
+  
+for obstacle in obstacles:
+  obstacle_x_start = obstacle.left
+  obstacle_movement.append({'left': obstacle_x_start-150, 'right': obstacle_x_start+150, 'turn': 'left'})
+  
 fps = pygame.time.Clock()
 
-start_projectile_x = start_projectile_y = end_projectile_y = 0
 
 def reached_destination(projectile,end_coord_y):
   return True if projectile.top < end_coord_y else False
 
 while (running):
-  fps.tick(60)
+  fps.tick(40)
   
   for event in pygame.event.get():
     if (event.type == pygame.QUIT):
@@ -69,14 +76,35 @@ while (running):
       break
   
   
-  for obstacle in obstacles:
+  for i in range(len(obstacle_movement)):
+    coordinator = obstacle_movement[i]
+    obstacle = obstacles[i]
+    if coordinator['turn'] == 'left':
+      if obstacle.left <= coordinator['left']:
+        coordinator['turn'] = 'right'
+      else:
+        obstacle.left-=3
+    elif coordinator['turn'] == 'right':
+      if obstacle.left >= coordinator['right']:
+        coordinator['turn'] = 'left'
+      else: 
+        obstacle.left+=3
+
+  for i in range(len(obstacles)):
+    obstacle = obstacles[i]  
     if projectiles != []:
       if obstacle.collidelist(projectiles) != -1:
         pygame.draw.rect(screen,'red',obstacle)
+        obstacles.remove(obstacles[i])
+        obstacle_movement.remove(obstacle_movement[i])
+        break
       else:
         pygame.draw.rect(screen,'blue',obstacle)
     else:
       pygame.draw.rect(screen,'blue',obstacle)
+      
+      
+  
 
     
   pygame.draw.rect(screen,'yellow',pygame.Rect(x,y,width,height))
