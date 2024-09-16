@@ -3,9 +3,51 @@ import random
 
 pygame.init()
 
-screen = pygame.display.set_mode((1920,1080))
-running = True
 
+
+class Player:
+  def __init__(self,y,x,width,height) -> None:
+    self.rect = pygame.Rect(y,x,width,height)
+    self.width, self.height = width,height
+    
+  def move(self):
+    keys = pygame.key.get_pressed()
+    if keys[pygame.K_w]:
+      self.rect.top-= 8
+    elif keys[pygame.K_s]:
+      self.rect.top+= 8
+    elif keys[pygame.K_a]:
+      self.rect.left-= 8
+    elif keys[pygame.K_d]:
+      self.rect.left+= 8
+  
+  def draw(self,surface):
+    pygame.draw.rect(surface,'yellow',self.rect)
+    
+  
+      
+class Projectile:
+  def __init__(self, y, x, width, height, destination) -> None:
+    self.rect = pygame.Rect(x,y,width,height)
+    self.destination = destination - 850
+  
+  def reached_destination(self):
+    return True if self.rect.top < self.destination else False
+  
+  def draw(self, surface):
+    pygame.draw.rect(surface,'red', self.rect)
+  
+class Obstacle:
+  def __init__(self, x, y, width, height) -> None:
+    self.rect = pygame.Rect(x, y, width, height)
+    self.left_move = x - 150
+    self.right_move = x + 150
+    self.turn = 'left'
+    
+  def draw(self, surface, color):
+    pygame.draw.rect(surface, color, self.rect)
+  
+  
 obstacle_movement = []
 obstacles = []
 
@@ -13,23 +55,18 @@ y,x = 700,800
 width,height = 50,50
 
 projectiles = []
-end_coords = []
-end_projectile_y = y
+
+player = Player(y,x,width,height)
+screen = pygame.display.set_mode((1920,1080))
+running = True
 
 
 for _ in range(6):
-  obstacle = pygame.Rect(random.randrange(0,1920),0,50,50)
+  obstacle = Obstacle(random.randrange(0,1920),0,50,50)
   obstacles.append(obstacle)
-  
-for obstacle in obstacles:
-  obstacle_x_start = obstacle.left
-  obstacle_movement.append({'left': obstacle_x_start-150, 'right': obstacle_x_start+150, 'turn': 'left'})
   
 fps = pygame.time.Clock()
 
-
-def reached_destination(projectile,end_coord_y):
-  return True if projectile.top < end_coord_y else False
 
 while (running):
   fps.tick(40)
@@ -39,24 +76,13 @@ while (running):
       running = False
     elif event.type == pygame.KEYDOWN:
       if event.key == pygame.K_SPACE:
-        start_projectile_x = x+width/2
-        start_projectile_y = y
-        end_projectile_y = start_projectile_y-850
-        projectile = pygame.Rect(start_projectile_x,start_projectile_y,5,15)      
+        start_projectile_x = player.rect.left+player.rect.width/2
+        start_projectile_y = player.rect.top
+        destination = player.rect.top
+        projectile = Projectile(start_projectile_y, start_projectile_x, 5, 15, destination)      
         projectiles.append(projectile)
-        end_coords.append(end_projectile_y)
-        
-  keys = pygame.key.get_pressed()
-  if keys[pygame.K_w]:
-    y-= 8
-  elif keys[pygame.K_s]:
-    y+= 8
-  elif keys[pygame.K_a]:
-    x-= 8
-  elif keys[pygame.K_d]:
-    x+= 8
   
-  
+  player.move()
 
   screen.fill('black')
 
@@ -64,50 +90,43 @@ while (running):
   color_obstacle = 'blue'
   for i in range(len(projectiles)):
     projectile = projectiles[i]
-    end_coord_y = end_coords[i]
-    if reached_destination(projectile, end_coord_y) is False:     
-      projectile.top-=20
-      pygame.draw.rect(screen,'red',projectile)
+    if projectile.reached_destination() is False:     
+      projectile.rect.top-=20
+      projectile.draw(screen)
   
   for i in range(len(projectiles)):
-    if reached_destination(projectiles[i],end_coords[i]):
+    if projectiles[i].reached_destination():
       projectiles.remove(projectiles[0])
-      end_coords.remove(end_coords[0])
       break
   
   
-  for i in range(len(obstacle_movement)):
-    coordinator = obstacle_movement[i]
+  for i in range(len(obstacles)):
     obstacle = obstacles[i]
-    if coordinator['turn'] == 'left':
-      if obstacle.left <= coordinator['left']:
-        coordinator['turn'] = 'right'
+    obstacle_x = obstacle.rect.left
+    if obstacle.turn == 'right':
+      if obstacle.right_move <= obstacle.rect.left:
+        obstacle.turn = 'left'
       else:
-        obstacle.left-=3
-    elif coordinator['turn'] == 'right':
-      if obstacle.left >= coordinator['right']:
-        coordinator['turn'] = 'left'
+        obstacle.rect.left += 3
+    elif obstacle.turn == 'left':
+      if obstacle.left_move >= obstacle.rect.left:
+        obstacle.turn = 'right'
       else: 
-        obstacle.left+=3
+        obstacle.rect.left -= 3
 
   for i in range(len(obstacles)):
     obstacle = obstacles[i]  
     if projectiles != []:
-      if obstacle.collidelist(projectiles) != -1:
-        pygame.draw.rect(screen,'red',obstacle)
+      if obstacle.rect.collidelist(projectiles) != -1:
+        obstacle.draw(screen,'red')
         obstacles.remove(obstacles[i])
-        obstacle_movement.remove(obstacle_movement[i])
         break
       else:
-        pygame.draw.rect(screen,'blue',obstacle)
+        obstacle.draw(screen,'blue')
     else:
-      pygame.draw.rect(screen,'blue',obstacle)
+      obstacle.draw(screen,'blue')
       
-      
-  
-
-    
-  pygame.draw.rect(screen,'yellow',pygame.Rect(x,y,width,height))
+  player.draw(screen)
   pygame.display.update()
 pygame.quit()
 
