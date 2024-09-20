@@ -4,26 +4,38 @@ import random
 pygame.init()
 
 
-
 class Player:
   def __init__(self,y,x,width,height) -> None:
-    self.rect = pygame.Rect(y,x,width,height)
-    self.width, self.height = width,height
+    self.rect = pygame.Rect(x,y,width,height)
+    self.width, self.height = width, height
     
-  def move(self):
+  def move(self,screen):
     keys = pygame.key.get_pressed()
+    x,y = screen.get_size()
+    left = 0
+    top = 0
     if keys[pygame.K_w]:
-      self.rect.top-= 8
+      top -= 8
     elif keys[pygame.K_s]:
-      self.rect.top+= 8
+      top += 8
     elif keys[pygame.K_a]:
-      self.rect.left-= 8
+      left -= 8
     elif keys[pygame.K_d]:
-      self.rect.left+= 8
+      left += 8
+    if self.player_crossing_border(x,y,left,top) is False:
+      self.rect.top += top
+      self.rect.left += left
   
   def draw(self,surface):
     pygame.draw.rect(surface,'yellow',self.rect)
     
+  def player_crossing_border(self,x,y,left,top):
+    if self.rect.left+left > x-60 or self.rect.left+left <= 0:
+      return True
+    elif self.rect.top+top < y*70/100 or self.rect.top+top > y-50 or self.rect.top+top <= 0:
+      return True
+    else: 
+      return False
   
       
 class Projectile:
@@ -51,7 +63,7 @@ class Obstacle:
 obstacle_movement = []
 obstacles = []
 
-y,x = 700,800
+x,y = 1000,1000
 width,height = 50,50
 
 projectiles = []
@@ -59,10 +71,10 @@ projectiles = []
 player = Player(y,x,width,height)
 screen = pygame.display.set_mode((1920,1080))
 running = True
-
+print(screen.get_size())
 
 for _ in range(6):
-  obstacle = Obstacle(random.randrange(0,1920),0,50,50)
+  obstacle = Obstacle(random.randrange(0,1920),0,30,30)
   obstacles.append(obstacle)
   
 fps = pygame.time.Clock()
@@ -82,12 +94,11 @@ while (running):
         projectile = Projectile(start_projectile_y, start_projectile_x, 5, 15, destination)      
         projectiles.append(projectile)
   
-  player.move()
+  player.move(screen)
 
   screen.fill('black')
 
             
-  color_obstacle = 'blue'
   for i in range(len(projectiles)):
     projectile = projectiles[i]
     if projectile.reached_destination() is False:     
